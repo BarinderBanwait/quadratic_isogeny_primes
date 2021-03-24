@@ -490,7 +490,7 @@ def get_isogeny_primes(K, aux_prime_count, bound=1000, loop_curves=False):
     pre_type_one_two_primes = get_pre_type_one_two_primes(K,
                                 aux_prime_count=aux_prime_count,
                                 loop_curves=loop_curves)
-    print("pre_type_2_primes = {}\n".format(pre_type_one_two_primes))
+    print("pre_type_1_2_primes = {}\n".format(pre_type_one_two_primes))
 
     # Get and show TypeTwoPrimes
 

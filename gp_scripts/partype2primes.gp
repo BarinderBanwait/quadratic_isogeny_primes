@@ -37,7 +37,8 @@
 
 \\ 80 billion is the bound for all |D| <= 10
 
-D=-5;  \\ change this to desired value
+D=5;  \\ change this to desired value
+typetwobound=56546719183;
 export(D)
 
 \\check if condition CC is satisfied
@@ -95,6 +96,7 @@ export(congruence_condition_main)
 congruence_condition_5(p) =
 {
     if(p%4 == 3,
+      my(x='x);
       x=p%5;
       if((x==2)||(x==3),
         return(1);
@@ -109,6 +111,7 @@ export(congruence_condition_5)
 congruence_condition_m10(p) =
 {
     if(p%8 == 3,
+      my(x='x);
       x=p%5;
       if((x==2)||(x==3),
         return(1);
@@ -145,19 +148,19 @@ custom_congruence_condition(p,D) =
 export(custom_congruence_condition)
 
 blockSize=100000;
-export(blockSize);
+export(blockSize)
 
-doWork(pBeg) =
+checktypetwo(pBeg) =
 {
     my(p,cond);
     forprime(p = pBeg*blockSize, (pBeg+1)*blockSize-1,
              cond=custom_congruence_condition(p,D);
              if(cond,print_satisfiesCC(p)));
 }
-export(doWork);
+export(checktypetwo)
 
-howMany=floor(1000000000/blockSize);
+howMany=floor(typetwobound/blockSize);
 
 \\ Takes about 27 seconds up to a billion!
 
-\\ parapply(doWork,[0..howMany]);
+\\ parapply(checktypetwo,[0..howMany]);
