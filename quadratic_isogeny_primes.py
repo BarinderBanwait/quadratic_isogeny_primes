@@ -134,7 +134,7 @@ def oezman_sieve(p,N):
 ########################################################################
 
 
-def get_N(frob_poly, residue_field_card):
+def get_N(frob_poly, residue_field_card, h_K):
     """Helper method for computing Type 1 primes"""
 
     if frob_poly.is_irreducible():
@@ -148,12 +148,13 @@ def get_N(frob_poly, residue_field_card):
         return 1 + residue_field_card ** 12 - 2 * beta ** 12
     else:
         beta, beta_bar = [r for r,e in roots_of_frob]
-        return 1 + residue_field_card ** 12 - beta ** 12 - beta_bar ** 12
+        return 1 + residue_field_card ** (12 * h_K) - beta ** (12 * h_K) - beta_bar ** (12 * h_K)
 
 
 def get_type_1_primes(K, aux_prime_count=3, loop_curves=False):
     """Compute the type 1 primes"""
 
+    h_K = K.class_number()
     aux_primes = [Q_2]
     prime_to_append = Q_2
     for _ in range(1,aux_prime_count):
@@ -175,7 +176,7 @@ def get_type_1_primes(K, aux_prime_count=3, loop_curves=False):
             weil_polys = R.weil_polynomials(2, residue_field_card)
 
         for wp in weil_polys:
-            N = get_N(wp, residue_field_card)
+            N = get_N(wp, residue_field_card, h_K)
             N = Integer(N)
             if N != 0:
                 # else we can ignore since it doesn't arise from an elliptic curve
@@ -186,7 +187,6 @@ def get_type_1_primes(K, aux_prime_count=3, loop_curves=False):
     output = set.intersection(*(val for val in running_prime_dict.values()))
     output = output.union(set(prime_range(P_2)))
     Delta_K = K.discriminant().abs()
-    h_K = K.class_number()
     output = output.union(set(Delta_K.prime_divisors()))
     third_set = [1+d for d in (12*h_K).divisors()]  # p : (p-1)|12h_K
     output = output.union(set([p for p in third_set if p.is_prime()]))
