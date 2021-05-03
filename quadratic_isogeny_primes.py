@@ -145,7 +145,7 @@ def get_N(frob_poly, residue_field_card, h_K):
     if len(roots_of_frob) == 1:
         assert roots_of_frob[0][1] == 2
         beta = roots_of_frob[0][0]
-        return 1 + residue_field_card ** 12 - 2 * beta ** 12
+        return 1 + residue_field_card ** (12 * h_K) - 2 * beta ** (12 * h_K)
     else:
         beta, beta_bar = [r for r,e in roots_of_frob]
         return 1 + residue_field_card ** (12 * h_K) - beta ** (12 * h_K) - beta_bar ** (12 * h_K)
