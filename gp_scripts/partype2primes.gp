@@ -38,7 +38,7 @@
 \\ 80 billion is the bound for all |D| <= 10
 
 D=5;  \\ change this to desired value
-typetwobound=56546719183;
+typetwobound=65000000000;  \\ change this to correct bound
 export(D)
 
 \\check if condition CC is satisfied
