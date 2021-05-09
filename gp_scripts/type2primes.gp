@@ -143,5 +143,5 @@ custom_congruence_condition(p,D) =
         congruence_condition_main(p));
 }
 
-\\parforprime(p = 1000000, 80000000000, if(custom_congruence_condition(p,D),print_satisfiesCC(p)));
+\\parforprime(p = 10, 1000000000, if(custom_congruence_condition(p,D),print_satisfiesCC(p)));
 \\read("gp_scripts/type2primes.gp")

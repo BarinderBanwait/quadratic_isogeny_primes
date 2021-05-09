@@ -38,6 +38,8 @@ from sage.all import (QQ, next_prime, IntegerRing, prime_range, ZZ, pari,
 
 # Global constants
 
+R = PolynomialRing(Rationals(), 'x')  # used in many functions
+
 # The constants which Momose calls P_2 and Q_2
 P_2 = 73
 Q_2 = 7
@@ -78,6 +80,16 @@ def get_weil_polys(res_field):
     """Used to compute all characteristic polynomial of Frobenius of
     elliptic curves over the given residue field"""
 
+    # If res characteristic is 2 or 3, one can easily check that
+    # all possible Weil polynomials are realised
+
+    if res_field.characteristic() == 2:
+        return R.weil_polynomials(2,Integer(2))
+
+    if res_field.characteristic() == 3:
+        # import pdb; pdb.set_trace()
+        return R.weil_polynomials(2,Integer(3))
+
     frob_polys = set()
 
     for A,B in list(product(res_field, res_field)):
@@ -113,7 +125,6 @@ def oezman_sieve(p,N):
     if not primes_tot_split_in_hcf:
         return False
 
-    R = PolynomialRing(Rationals(), 'x')
     f = R(hilbert_class_polynomial(M.discriminant()))
     B = NumberField(f, name='t')
     assert B.degree() == h_M
@@ -134,8 +145,8 @@ def oezman_sieve(p,N):
 ########################################################################
 
 
-def get_N(frob_poly, residue_field_card, exponent):
-    """Helper method for computing Type 1 primes"""
+def get_D(frob_poly, residue_field_card, exponent):
+    """This computes the integer D"""
 
     if frob_poly.is_irreducible():
         frob_poly_root_field = frob_poly.root_field('a')
@@ -162,8 +173,7 @@ def get_type_1_primes(K, aux_prime_count=3, loop_curves=False):
         prime_to_append = next_prime(prime_to_append)
         aux_primes.append(prime_to_append)
 
-    running_prime_dict = {}
-    R = PolynomialRing(Rationals(), 'x')
+    D_dict = {}
 
     for q in aux_primes:
         frak_q = K.primes_above(q)[0]
@@ -172,23 +182,21 @@ def get_type_1_primes(K, aux_prime_count=3, loop_curves=False):
         frak_q_class_group_order = C_K(frak_q).multiplicative_order()
         exponent = 12 * frak_q_class_group_order
 
-        running_primes = q
+        running_D = q
         if loop_curves:
             weil_polys = get_weil_polys(residue_field)
         else:
             weil_polys = R.weil_polynomials(2, residue_field_card)
 
         for wp in weil_polys:
-            N = get_N(wp, residue_field_card, exponent)
-            N = Integer(N)
-            if N != 0:
+            D = get_D(wp, residue_field_card, exponent)
+            D = Integer(D)
+            if D != 0:
                 # else we can ignore since it doesn't arise from an elliptic curve
-                # running_primes = running_primes.union(set(Integer(N).prime_divisors()))
-                running_primes = lcm(running_primes, N)
-        running_prime_dict[q] = running_primes
+                running_D = lcm(running_D, D)
+        D_dict[q] = running_D
 
-    # output = set.intersection(*(val for val in running_prime_dict.values()))
-    output = gcd(list(running_prime_dict.values()))
+    output = gcd(list(D_dict.values()))
     output = set(output.prime_divisors())
     output = output.union(set(prime_range(P_2)))
     Delta_K = K.discriminant().abs()
@@ -249,40 +257,33 @@ def filter_ABC_primes(K, prime_list, eps_type):
         raise ValueError("type must be quadratic, quartic, or sextic")
 
 
-def get_AB_primes(K,q,epsilons,h_K):
+def get_AB_primes(K, q, epsilons, q_class_group_order):
 
     output_dict_AB = {}
-    alphas = (q ** h_K).gens_reduced()
-    assert len(alphas) == 1, "q^hK not principal, which is very bad"
+    alphas = (q ** q_class_group_order).gens_reduced()
+    assert len(alphas) == 1, "q^q_class_group_order not principal, which is very bad"
     alpha = alphas[0]
     rat_q = ZZ(q.norm())
     assert rat_q.is_prime(), "somehow the degree 1 prime is not prime"
-    for eps, eps_type in epsilons.items():
+    for eps in epsilons:
         alpha_to_eps = group_ring_exp(alpha,eps)
         A = (alpha_to_eps - 1).norm()
-        B = (alpha_to_eps - (rat_q ** (12 * h_K))).norm()
-        possible_A_primes = ZZ(A).prime_divisors()
-        possible_B_primes = ZZ(B).prime_divisors()
-
-        A_primes_filt = filter_ABC_primes(K, possible_A_primes, eps_type)
-        B_primes_filt = filter_ABC_primes(K, possible_B_primes, eps_type)
-
-        output_dict_AB[eps] = set(A_primes_filt).union(B_primes_filt)
+        B = (alpha_to_eps - (rat_q ** (12 * q_class_group_order))).norm()
+        output_dict_AB[eps] = lcm(A,B)
     return output_dict_AB
 
 
-def get_C_primes(K, frak_q, epsilons, h_K, loop_curves=False):
+def get_C_primes(K, frak_q, epsilons, q_class_group_order, loop_curves=False):
 
     # Initialise output dict to empty sets
     output_dict_C = {}
     for eps in epsilons:
-        output_dict_C[eps] = set()
+        output_dict_C[eps] = 1
 
     residue_field = frak_q.residue_field(names='z')
-    alphas = (frak_q ** h_K).gens_reduced()
-    assert len(alphas) == 1, "q^hK not principal, which is very bad"
+    alphas = (frak_q ** q_class_group_order).gens_reduced()
+    assert len(alphas) == 1, "q^q_class_group_order not principal, which is very bad"
     alpha = alphas[0]
-    R = PolynomialRing(Rationals(), 'x')
     if loop_curves:
         frob_polys_to_loop = get_weil_polys(residue_field)
     else:
@@ -299,27 +300,15 @@ def get_C_primes(K, frak_q, epsilons, h_K, loop_curves=False):
 
         for beta in betas:
             if beta in K:
-                for eps, eps_type in epsilons.items():
-                    N = (group_ring_exp(alpha, eps) - beta ** (12*h_K)).absolute_norm()
+                for eps in epsilons:
+                    N = (group_ring_exp(alpha, eps) - beta ** (12*q_class_group_order)).absolute_norm()
                     N = ZZ(N)
-                    if N != 0:
-                        possible_C_primes = N.prime_divisors()
-                        C_primes_filt = filter_ABC_primes(K, possible_C_primes, eps_type)
-                    else:
-                        # means no elliptic curve with this weil poly
-                        C_primes_filt = []
-                    output_dict_C[eps] = output_dict_C[eps].union(set(C_primes_filt))
+                    output_dict_C[eps] = lcm(output_dict_C[eps], N)
             else:
-                for eps, eps_type in epsilons.items():
-                    N = (K_into_KL(group_ring_exp(alpha, eps)) - L_into_KL(beta ** (12*h_K))).absolute_norm()
+                for eps in epsilons:
+                    N = (K_into_KL(group_ring_exp(alpha, eps)) - L_into_KL(beta ** (12*q_class_group_order))).absolute_norm()
                     N = ZZ(N)
-                    if N != 0:
-                        possible_C_primes = ZZ(N).prime_divisors()
-                        C_primes_filt = filter_ABC_primes(K, possible_C_primes, eps_type)
-                    else:
-                        # means no elliptic curve with this weil poly
-                        C_primes_filt = []
-                    output_dict_C[eps] = output_dict_C[eps].union(set(C_primes_filt))
+                    output_dict_C[eps] = lcm(output_dict_C[eps], N)
     return output_dict_C
 
 
@@ -340,18 +329,18 @@ def get_pre_type_one_two_primes(K, aux_prime_count=3, loop_curves=False):
 
     tracking_dict = {}
     epsilons = EPSILONS_PRE_TYPE_1_2
-    h_K = K.class_number()
+    C_K = K.class_group()
 
     for q in aux_primes:
+        q_class_group_order = C_K(q).multiplicative_order()
         # these will be dicts with keys the epsilons, values sets of primes
-        AB_primes_dict = get_AB_primes(K,q,epsilons, h_K)
-        C_primes_dict = get_C_primes(K, q, epsilons, h_K, loop_curves)
+        AB_primes_dict = get_AB_primes(K,q,epsilons, q_class_group_order)
+        C_primes_dict = get_C_primes(K, q, epsilons, q_class_group_order, loop_curves)
         unified_dict = {}
         q_rat = Integer(q.norm())
         assert q_rat.is_prime()
         for eps in epsilons:
-            unified_dict[eps] = AB_primes_dict[eps].union(C_primes_dict[eps],
-                                                          {q_rat})
+            unified_dict[eps] = lcm([q_rat, AB_primes_dict[eps], C_primes_dict[eps]])
         tracking_dict[q] = unified_dict
 
     tracking_dict_inv_collapsed = {}
@@ -359,9 +348,19 @@ def get_pre_type_one_two_primes(K, aux_prime_count=3, loop_curves=False):
         q_dict = {}
         for q in aux_primes:
             q_dict[q] = tracking_dict[q][eps]
-        q_dict_collapsed = set.intersection(*(val for val in q_dict.values()))
+        q_dict_collapsed = gcd(list(q_dict.values()))
         tracking_dict_inv_collapsed[eps] = q_dict_collapsed
-    output = set.union(*(val for val in tracking_dict_inv_collapsed.values()))
+
+    final_split_dict = {}
+
+    for eps_type in set(epsilons.values()):
+        eps_type_tracking_dict_inv = {eps:ZZ(tracking_dict_inv_collapsed[eps]) for eps in epsilons if epsilons[eps] == eps_type}
+        eps_type_output = lcm(list(eps_type_tracking_dict_inv.values()))
+        eps_type_output = eps_type_output.prime_divisors()
+        eps_type_output = filter_ABC_primes(K, eps_type_output, eps_type)
+        final_split_dict[eps_type] = set(eps_type_output)
+
+    output = set.union(*(val for val in final_split_dict.values()))
     output = list(output)
     output.sort()
     return output
@@ -389,7 +388,6 @@ def get_type_2_bound(K):
     D = 2 * A * n_K
     E = 4 * A * log(delta_K) + 2 * A * n_K * log(12) + 4 * B * n_K + C + 1
 
-    R = PolynomialRing(Rationals(), 'x')
     x = R.gen()
     f = x - (D*log(x) + E) ** 4
 

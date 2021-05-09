@@ -68,7 +68,7 @@ class Latexer(object):
                     if D != 1:
                         K = QuadraticField(D)
                         Delta_K = K.discriminant()
-                        candidates = get_isogeny_primes(K, aux_prime_count=4, bound=2000, loop_only_j=True)
+                        candidates = get_isogeny_primes(K, aux_prime_count=25, bound=2000, loop_curves=False)
                         candidates = [c for c in candidates if c not in EC_Q_ISOGENY_PRIMES]
                         candidates = [c for c in candidates if c > 71]
                         candidates.sort()
