@@ -82,7 +82,7 @@ EPSILONS_NOT_TYPE_1_2 = {
 # Global methods
 
 
-def get_weil_polys(res_field):
+def get_weil_polys(res_field, ordinary=False):
     """Used to compute all characteristic polynomial of Frobenius of
     elliptic curves over the given residue field"""
 
@@ -90,20 +90,27 @@ def get_weil_polys(res_field):
     # all possible Weil polynomials are realised
 
     if res_field.characteristic() == 2:
-        return R.weil_polynomials(2, Integer(2))
+        frob_polys = R.weil_polynomials(2, Integer(2))
 
-    if res_field.characteristic() == 3:
-        return R.weil_polynomials(2, Integer(3))
+    elif res_field.characteristic() == 3:
+        frob_polys = R.weil_polynomials(2, Integer(3))
 
-    frob_polys = set()
+    else:
+        frob_polys = set()
 
-    for A, B in list(product(res_field, res_field)):
-        if (4 * A ** 3 + 27 * B ** 2) != 0:
-            E = EllipticCurve([A, B])
-            frob_poly = E.frobenius_polynomial()
-            frob_polys = frob_polys.union({frob_poly})
+        for A, B in list(product(res_field, res_field)):
+            if (4 * A ** 3 + 27 * B ** 2) != 0:
+                E = EllipticCurve([A, B])
+                frob_poly = E.frobenius_polynomial()
+                frob_polys = frob_polys.union({frob_poly})
 
-    return list(frob_polys)
+        frob_polys = list(frob_polys)
+
+    if ordinary:
+        q, _ = res_field.cardinality().perfect_power()
+        frob_polys = [f for f in frob_polys if f[1] % q != 0]
+
+    return frob_polys
 
 
 ########################################################################
@@ -312,7 +319,9 @@ def get_AB_primes(q, epsilons, q_class_group_order):
     return output_dict_AB
 
 
-def get_C_primes(K, frak_q, epsilons, q_class_group_order, loop_curves=False):
+def get_C_primes(
+    K, frak_q, epsilons, q_class_group_order, loop_curves=False, ordinary=False
+):
 
     # Initialise output dict to empty sets
     output_dict_C = {}
@@ -324,9 +333,13 @@ def get_C_primes(K, frak_q, epsilons, q_class_group_order, loop_curves=False):
     assert len(alphas) == 1, "q^q_class_group_order not principal, which is very bad"
     alpha = alphas[0]
     if loop_curves:
-        frob_polys_to_loop = get_weil_polys(residue_field)
+        frob_polys_to_loop = get_weil_polys(residue_field, ordinary=ordinary)
     else:
-        frob_polys_to_loop = R.weil_polynomials(2, residue_field.cardinality())
+        res_field_card = residue_field.cardinality()
+        frob_polys_to_loop = R.weil_polynomials(2, res_field_card)
+        if ordinary:
+            q, _ = res_field_card.perfect_power()
+            frob_polys_to_loop = [f for f in frob_polys_to_loop if f[1] % q != 0]
 
     for frob_poly in frob_polys_to_loop:
         if frob_poly.is_irreducible():
@@ -485,16 +498,18 @@ def get_one_aux_gen_list(C_K, class_group_gens, it):
 
 def get_the_lcm(C_K, gen_list):
 
+    K = C_K.number_field()
     epsilons = {(6, 6): "type-2"}
     running_lcm = 1
     for q in gen_list:
         q_class_group_order = C_K(q).multiplicative_order()
         AB_lcm = get_AB_primes(q, epsilons, q_class_group_order)[(6, 6)]
+        C_o = get_C_primes(K, q, epsilons, q_class_group_order, ordinary=True)[(6, 6)]
         rat_q = ZZ(q.norm())
         assert (
             rat_q.is_prime()
         ), "Somehow there is a split prime ideal whose norm is not prime!"
-        running_lcm = lcm([running_lcm, AB_lcm, rat_q])
+        running_lcm = lcm([running_lcm, AB_lcm, C_o, rat_q])
     return running_lcm
 
 

@@ -6,7 +6,7 @@
 
     This file is part of Quadratic Isogeny Primes.
 
-    Copyright (C) 2021 Barinder Singh Banwait
+    Copyright (C) 2022 Barinder Singh Banwait
 
     Quadratic Isogeny Primes is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -50,3 +50,39 @@ for p in PrimesUpTo(6) do;
   X0 := Curve(P,dps);
   time Invariants(ClassGroup(X0));
 end for;
+
+/*
+    The following code carries out the check on torsion of the minus part of
+    J_0(53), and is referenced in the proof of Theorem 1.10.
+*/
+
+for p in PrimesUpTo(6) do;
+  FF := GF(p^2);
+  print FF;
+  A2 := AffineSpace(FF,2);
+  X0 := ModularCurve(A2,"Atkin",53);
+  X0 := ProjectiveClosure(X0);
+  dps := DefiningPolynomials(X0);
+  R := Parent(dps[1]);
+  P := ProjectiveSpace(R);
+  X0 := Curve(P,dps);
+  time Invariants(ClassGroup(X0));
+end for;
+
+/*
+    The following code carries out the check on the rank of the minus part of
+    J_0(53) over Qsqrt7, and is referenced in the proof of Theorem 1.10.
+*/
+
+p := 53;
+Chi := KroneckerCharacter(28, Rationals());
+ML := ModularSymbols(p,2);
+tw := TwistedWindingElement(ML,1,Chi);
+
+CL := CuspidalSubspace(ML);
+minus_space := NewformDecomposition(CL)[2];
+TL := AtkinLehner(minus_space,p);
+assert TL + 1 eq 0; // sanity check that TL is the minus space
+my_map := RationalMapping(minus_space);
+twmap := my_map(tw); // non-zero, so rank of twist is zero
+twmap; // non-zero, so rank of twist is zero
